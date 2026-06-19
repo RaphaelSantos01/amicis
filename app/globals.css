@@ -1,8 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --amicis-orange: #f28c28;
+  --amicis-orange-light: #fff0dd;
+
+  --amicis-brown: #4a2511;
+  --amicis-brown-light: #f5e8dd;
+
+  --amicis-background: #fff8f1;
+
+  --amicis-success: #16a34a;
+  --amicis-success-light: #dcfce7;
 }
 
 @theme inline {
