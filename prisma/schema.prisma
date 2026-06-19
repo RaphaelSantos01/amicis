@@ -1,0 +1,575 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProfileType {
+  COMMON_USER
+  COMMERCIAL_PARTNER
+  INSTITUTIONAL_PARTNER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+  INACTIVE
+}
+
+enum PartnerType {
+  COMMERCIAL
+  INSTITUTIONAL
+}
+
+enum PartnerStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum AnimalStatus {
+  AVAILABLE
+  ADOPTED
+  INACTIVE
+}
+
+enum RequestStatus {
+  PENDING
+  IN_ANALYSIS
+  APPROVED
+  REJECTED
+  CANCELED
+}
+
+enum VisitStatus {
+  REQUESTED
+  CONFIRMED
+  COMPLETED
+  CANCELED
+}
+
+enum ServiceStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum AppointmentStatus {
+  REQUESTED
+  CONFIRMED
+  REJECTED
+  COMPLETED
+  CANCELED
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum PaymentStatus {
+  SIMULATED
+  PENDING
+  PAID
+  FAILED
+  CANCELED
+}
+
+enum OrderStatus {
+  CREATED
+  CONFIRMED
+  DELIVERED
+  CANCELED
+}
+
+enum PlanStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  EXPIRED
+}
+
+enum ReportStatus {
+  OPEN
+  IN_ANALYSIS
+  FORWARDED
+  COMPLETED
+}
+
+enum ReportPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum NotificationChannel {
+  EMAIL
+  SYSTEM
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  READ
+}
+
+enum ChatSender {
+  USER
+  AMI
+}
+
+enum ChatStatus {
+  ACTIVE
+  CLOSED
+}
+
+enum RecommendationType {
+  ADOPTION
+  SPONSORSHIP
+  SERVICE
+  PRODUCT
+  PLAN
+}
+
+model User {
+  id           String     @id @default(uuid())
+  name         String
+  email        String     @unique
+  passwordHash String
+  phone        String?
+  profileType  ProfileType @default(COMMON_USER)
+  status       UserStatus  @default(ACTIVE)
+
+  partners             Partner[]
+  adoptionRequests     AdoptionRequest[]
+  sponsorshipRequests  SponsorshipRequest[]
+  visits               Visit[]
+  serviceAppointments  ServiceAppointment[]
+  orders               Order[]
+  subscriptions        Subscription[]
+  reports              Report[]
+  chatSessions         ChatSession[]
+  notifications        Notification[]
+  aiRecommendations    AiRecommendation[]
+  auditLogs            AuditLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Partner {
+  id          String        @id @default(uuid())
+  userId      String
+  partnerType PartnerType
+  fantasyName String
+  legalName   String?
+  document    String?
+  email       String
+  phone       String?
+  description String?
+  status      PartnerStatus @default(PENDING)
+
+  user     User      @relation(fields: [userId], references: [id])
+  address  Address?
+
+  animals  Animal[]
+  services Service[]
+  products Product[]
+  visits   Visit[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("partners")
+}
+
+model Address {
+  id           String  @id @default(uuid())
+  partnerId    String? @unique
+  street       String?
+  number       String?
+  complement   String?
+  neighborhood String?
+  city         String?
+  state        String?
+  zipCode      String?
+  latitude     Decimal?
+  longitude    Decimal?
+
+  partner Partner? @relation(fields: [partnerId], references: [id])
+  reports Report[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("addresses")
+}
+
+model Animal {
+  id                       String       @id @default(uuid())
+  partnerId                String
+  name                     String
+  species                  String
+  breed                    String?
+  sex                      String
+  age                      Int?
+  size                     String?
+  description              String
+  healthNotes              String?
+  adoptionAvailable        Boolean      @default(false)
+  sponsorshipAvailable     Boolean      @default(false)
+  status                   AnimalStatus @default(AVAILABLE)
+
+  partner              Partner              @relation(fields: [partnerId], references: [id])
+  photos               AnimalPhoto[]
+  adoptionRequests     AdoptionRequest[]
+  sponsorshipRequests  SponsorshipRequest[]
+  visits               Visit[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("animals")
+}
+
+model AnimalPhoto {
+  id          String  @id @default(uuid())
+  animalId    String
+  url         String
+  description String?
+  mainPhoto   Boolean @default(false)
+
+  animal Animal @relation(fields: [animalId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@map("animal_photos")
+}
+
+model AdoptionRequest {
+  id        String        @id @default(uuid())
+  userId    String
+  animalId  String
+  status    RequestStatus @default(PENDING)
+  message   String?
+
+  user   User   @relation(fields: [userId], references: [id])
+  animal Animal @relation(fields: [animalId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("adoption_requests")
+}
+
+model SponsorshipRequest {
+  id             String        @id @default(uuid())
+  userId         String
+  animalId       String
+  supportType    String
+  estimatedValue Decimal?
+  frequency      String?
+  message        String?
+  status         RequestStatus @default(PENDING)
+
+  user   User   @relation(fields: [userId], references: [id])
+  animal Animal @relation(fields: [animalId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sponsorship_requests")
+}
+
+model Visit {
+  id            String      @id @default(uuid())
+  userId        String
+  animalId      String
+  partnerId     String
+  visitDatetime DateTime
+  status        VisitStatus @default(REQUESTED)
+  notes         String?
+
+  user    User    @relation(fields: [userId], references: [id])
+  animal  Animal  @relation(fields: [animalId], references: [id])
+  partner Partner @relation(fields: [partnerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("visits")
+}
+
+model Service {
+  id              String        @id @default(uuid())
+  partnerId       String
+  name            String
+  category        String
+  description     String
+  price           Decimal
+  durationMinutes Int
+  status          ServiceStatus @default(ACTIVE)
+
+  partner       Partner              @relation(fields: [partnerId], references: [id])
+  availability  ServiceAvailability[]
+  appointments  ServiceAppointment[]
+  planServices  PlanService[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("services")
+}
+
+model ServiceAvailability {
+  id        String  @id @default(uuid())
+  serviceId String
+  weekDay   Int
+  startTime String
+  endTime   String
+  active    Boolean @default(true)
+
+  service Service @relation(fields: [serviceId], references: [id])
+
+  @@map("service_availability")
+}
+
+model ServiceAppointment {
+  id                  String            @id @default(uuid())
+  userId              String
+  serviceId           String
+  appointmentDatetime DateTime
+  price               Decimal
+  paymentStatus       PaymentStatus     @default(SIMULATED)
+  status              AppointmentStatus @default(REQUESTED)
+  notes               String?
+
+  user    User    @relation(fields: [userId], references: [id])
+  service Service @relation(fields: [serviceId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("service_appointments")
+}
+
+model Product {
+  id            String        @id @default(uuid())
+  partnerId     String
+  name          String
+  category      String
+  description   String?
+  price         Decimal
+  stockQuantity Int
+  status        ProductStatus @default(ACTIVE)
+
+  partner    Partner     @relation(fields: [partnerId], references: [id])
+  orderItems OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("products")
+}
+
+model Order {
+  id            String        @id @default(uuid())
+  userId        String
+  totalAmount   Decimal
+  paymentStatus PaymentStatus @default(SIMULATED)
+  orderStatus   OrderStatus   @default(CREATED)
+
+  user  User        @relation(fields: [userId], references: [id])
+  items OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  productId String
+  quantity  Int
+  unitPrice Decimal
+  subtotal  Decimal
+
+  order   Order   @relation(fields: [orderId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+model Plan {
+  id           String     @id @default(uuid())
+  name         String
+  description  String
+  monthlyPrice Decimal
+  status       PlanStatus @default(ACTIVE)
+
+  subscriptions Subscription[]
+  planServices  PlanService[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("plans")
+}
+
+model PlanService {
+  id                 String  @id @default(uuid())
+  planId             String
+  serviceId          String
+  discountPercentage Decimal
+  active             Boolean @default(true)
+
+  plan    Plan    @relation(fields: [planId], references: [id])
+  service Service @relation(fields: [serviceId], references: [id])
+
+  @@map("plan_services")
+}
+
+model Subscription {
+  id            String             @id @default(uuid())
+  userId        String
+  planId        String
+  startDate     DateTime
+  endDate       DateTime?
+  paymentStatus PaymentStatus      @default(SIMULATED)
+  status        SubscriptionStatus @default(ACTIVE)
+
+  user User @relation(fields: [userId], references: [id])
+  plan Plan @relation(fields: [planId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("subscriptions")
+}
+
+model Report {
+  id           String         @id @default(uuid())
+  userId       String
+  addressId    String?
+  description  String
+  category     String?
+  priority     ReportPriority?
+  riskLevel    String?
+  status       ReportStatus   @default(OPEN)
+  aiClassified Boolean        @default(false)
+
+  user      User             @relation(fields: [userId], references: [id])
+  address   Address?         @relation(fields: [addressId], references: [id])
+  evidences ReportEvidence[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("reports")
+}
+
+model ReportEvidence {
+  id          String @id @default(uuid())
+  reportId    String
+  fileUrl     String
+  fileType    String?
+  description String?
+
+  report Report @relation(fields: [reportId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@map("report_evidences")
+}
+
+model ChatSession {
+  id        String     @id @default(uuid())
+  userId    String
+  startedAt DateTime   @default(now())
+  endedAt   DateTime?
+  status    ChatStatus @default(ACTIVE)
+
+  user     User          @relation(fields: [userId], references: [id])
+  messages ChatMessage[]
+
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id            String     @id @default(uuid())
+  chatSessionId String
+  sender        ChatSender
+  content       String
+  intent        String?
+  createdAt     DateTime   @default(now())
+
+  chatSession ChatSession @relation(fields: [chatSessionId], references: [id])
+
+  @@map("chat_messages")
+}
+
+model AiRecommendation {
+  id                 String             @id @default(uuid())
+  userId             String
+  recommendationType RecommendationType
+  referenceId         String
+  score              Decimal
+  explanation        String?
+
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@map("ai_recommendations")
+}
+
+model Notification {
+  id        String              @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  channel   NotificationChannel
+  status    NotificationStatus  @default(PENDING)
+  sentAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id        String  @id @default(uuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String
+  oldValue  Json?
+  newValue  Json?
+
+  user User? @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
