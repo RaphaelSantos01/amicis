@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/compentents/ui/Badge";
 import { Button } from "@/compentents/ui/Button";
@@ -83,13 +84,22 @@ export default async function AnimalDetailsPage({
         )}
 
         <div className="mt-8 flex flex-wrap gap-4">
-          {animal.adoptionAvailable && <Button>Solicitar Adoção</Button>}
+          {animal.adoptionAvailable && 
+            <Link href={`/animais/${animal.id}/adotar`}>
+              <Button>Solicitar Adoção</Button>
+            </Link>}
 
           {animal.sponsorshipAvailable && (
-            <Button variant="secondary">Solicitar Apadrinhamento</Button>
+            <Link href={`/animais/${animal.id}/apadrinhar`}>
+              <Button variant="secondary">
+                Solicitar Apadrinhamento
+              </Button>
+            </Link>
           )}
 
-          <Button variant="outline">Agendar Visita</Button>
+          <Link href={`/animais/${animal.id}/visita`}>
+  <Button variant="outline">Agendar Visita</Button>
+</Link>
         </div>
       </div>
     </div>

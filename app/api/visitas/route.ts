@@ -27,27 +27,22 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!animal.adoptionAvailable) {
-      return NextResponse.json(
-        { error: "Animal não disponível para adoção." },
-        { status: 400 }
-      );
-    }
-
-    const adoptionRequest = await prisma.adoptionRequest.create({
+    const visit = await prisma.visit.create({
       data: {
         userId: testUser.id,
         animalId: animal.id,
-        message: body.message,
+        partnerId: animal.partnerId,
+        visitDatetime: new Date(body.visitDatetime),
+        notes: body.notes,
       },
     });
 
-    return NextResponse.json(adoptionRequest, { status: 201 });
+    return NextResponse.json(visit, { status: 201 });
   } catch (error) {
     console.error(error);
 
     return NextResponse.json(
-      { error: "Erro ao solicitar adoção." },
+      { error: "Erro ao solicitar visita." },
       { status: 500 }
     );
   }
